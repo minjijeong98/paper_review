@@ -79,7 +79,7 @@
 
 #### Tool Execution
 - 계획  $\boldsymbol{p}^t$에 따라 단계별로 도구를 호출하고 각 tool에서 출력을 얻음
-	- $\boldsymbol{o}^t = \{o_1^t, \cdots, o_n^t\} = \text{exec}(\boldsymbol{p}^t, \mathcal{F})$),   $o_k^t$: 각 tool $f_k$의 output
+	- $\boldsymbol{o}^t = \{o_1^t, \cdots, o_n^t\} = \text{exec}(\boldsymbol{p}^t, \mathcal{F})$,   $o_k^t$: 각 tool $f_k$의 output
 	- 마지막 tool의 output에서 얻은 item 정보 $o_n^t$ -> 응답 $y^t$ 생성 위한 LLM의 observation
 
 ![그림1](https://github.com/minjijeong98/paper_review/assets/162319450/866de6ef-6c32-49f7-a2cb-9928e4b8a292)
@@ -104,8 +104,8 @@
 	- actor: 앞서 결과 생성한 LLM
 	- critic: actor의 행동 결정 평가
 		1. 판단 $\gamma = \text{reflect}(x^t, C^{t-1}, \boldsymbol{p}^t, \boldsymbol{o}^t, y^t)$ 얻음
-		2. $\gamma>0$ (actor의 실행, 응답 합리적) -> $y^t$ 사용자에게 제공하고 reflection 단계 종료
-		   $\gamma < 0$ (actor의 실행/응답 비합리적) -> actor에게 rechain 지시
+  		2. $\gamma>0$ (actor의 실행, 응답 합리적) -> $y^t$ 사용자에게 제공하고 reflection 단계 종료
+		3. $\gamma < 0$ (actor의 실행/응답 비합리적) -> actor에게 rechain 지시
 - 오류에 대해 견고해짐
 
 ---
