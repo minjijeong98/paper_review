@@ -41,31 +41,34 @@
 **세부 알고리즘**
 #### Dynamic Demonstration
 - 현재 사용자 의도와 가장 유사한 몇 가지 데모만 프롬프트에 통합하는 전략
-- sentence-transformer 사용해 demo를 벡터로 인코딩, ChromaDB 사용해 저장
-- step
-  1. 시드 데모 제작: 몇 가지 일반적인 사용자 의도와 그에 따른 execution을 수동으로 작성
-  2. LLM 사용해 더 많은 데모 생성: input-first, output-first 전략 사용
-     - input-first 전략
-       1. LLM이 seed demonstration의 의도 경쟁시켜서 $x$ 생성
-       2. 이러한 의도에 대한 계획 $\boldsymbol{p}$ 생성
-     - output-first 전략
-       1. LLM에 계획 $\boldsymbol{p}$ 제공, 그에 해당하는 사용자 의도 $x$ 생성
-       2. LLM 사용해 의도에 대한 계획 $\tilde{\boldsymbol{p}}$ 생성
-       3. 생성된 계획 $\tilde{\boldsymbol{p}}$가 주어진 계획 $\boldsymbol{p}$와 일치하는지 검증
-          - 불일치: 생성된 의도의 품질이 충분히 높지 않음 의미 -> 제거. 일관성 있는 데모만 유지함
-          - 사용 가능한 모든 계획에 해당하는 데모 얻을 수 있으므로 데모에 다양성 제공 가능
-- (예시) 게임 도메인에서 생성된 demonstration
+- <details>
+	<summary>demo 생성 과정</summary> 
+	
+	- sentence-transformer 사용해 demo를 벡터로 인코딩, ChromaDB 사용해 저장
+	- step
+	  1. 시드 데모 제작: 몇 가지 일반적인 사용자 의도와 그에 따른 execution을 수동으로 작성
+	  2. LLM 사용해 더 많은 데모 생성: input-first, output-first 전략 사용
+	     - input-first 전략
+	       1. LLM이 seed demonstration의 의도 경쟁시켜서 $x$ 생성
+	       2. 이러한 의도에 대한 계획 $\boldsymbol{p}$ 생성
+	     - output-first 전략
+	       1. LLM에 계획 $\boldsymbol{p}$ 제공, 그에 해당하는 사용자 의도 $x$ 생성
+	       2. LLM 사용해 의도에 대한 계획 $\tilde{\boldsymbol{p}}$ 생성
+	       3. 생성된 계획 $\tilde{\boldsymbol{p}}$가 주어진 계획 $\boldsymbol{p}$와 일치하는지 검증
+	          - 불일치: 생성된 의도의 품질이 충분히 높지 않음 의미 -> 제거. 일관성 있는 데모만 유지함
+	          - 사용 가능한 모든 계획에 해당하는 데모 얻을 수 있으므로 데모에 다양성 제공 가능
+	- (예시) 게임 도메인에서 생성된 demonstration
+	
+	| Intent (by GPT-4) | 내가 ITEM1, ITEM2, ITEM3을 선호할 때, 이에 따라 TYPE1과 TYPE2의 아이템을 몇가지 제안해줘.                                                                                                             |
+	| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+	| Plan (by GPT-4)   | 1. SQL Retrieval Tool : TYPE1, TYPE2<br>2. Ranking Tool : ITEM 1, 2, 3에 대한 선호 사용<br>3. Candidate Fetching Tool                                                                |
+	| Plan              | 1. Candidates Storing Tool : ITEM 1, 2, 3<br>2. SQL Retrieval Tool : TYPE<br>3. ItemCF Retrieval Tool: ITEM <br>4. Ranking Tool: preference 이용 <br>5. Candidate Fetching Tool |
+	| Intent (by GPT-4) | 나는 ITEM1, ITEM2, ITEM3이라는 아이템 목록을 가지고 있다. 나는 ITEM과 유사한 TYPE의 아이템을 원하고, 내 선호에 따라 이들의 순위를 매겨라.                                                                                  |
+	</details>
 
-| Intent (by GPT-4) | 내가 ITEM1, ITEM2, ITEM3을 선호할 때, 이에 따라 TYPE1과 TYPE2의 아이템을 몇가지 제안해줘.                                                                                                             |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Plan (by GPT-4)   | 1. SQL Retrieval Tool : TYPE1, TYPE2<br>2. Ranking Tool : ITEM 1, 2, 3에 대한 선호 사용<br>3. Candidate Fetching Tool                                                                |
-| Plan              | 1. Candidates Storing Tool : ITEM 1, 2, 3<br>2. SQL Retrieval Tool : TYPE<br>3. ItemCF Retrieval Tool: ITEM <br>4. Ranking Tool: preference 이용 <br>5. Candidate Fetching Tool |
-| Intent (by GPT-4) | 나는 ITEM1, ITEM2, ITEM3이라는 아이템 목록을 가지고 있다. 나는 ITEM과 유사한 TYPE의 아이템을 원하고, 내 선호에 따라 이들의 순위를 매겨라.                                                                                  |
+
 
 #### Generate Plan
-- step-by-step 전략의 한계
-	- retrieval tool이 item 많이 반환 가능 -> LLM 프롬프트 지나치게 길어짐 (-> LLM 성능 저하)
-	- LLM이 작업 완료하기 위한 tool 잘못 사용할 수 있음 (잘못된 도구, 주요 실행단계 생략 등)
 - **plan-first execution (계획 우선) 전략**
 	- 사용자 의도에 따라 tool 호출의 모든 단계 한번에 생성(plan) -> 계획 엄격하게 따라 작업 수행
 	- 계획 $\boldsymbol{p}^t = \{p_1^t, \cdots, p_n^t\} = \text{plan}(x^t, C^{t-1}, \mathcal{F}, \mathcal{D}_{x^t})$
